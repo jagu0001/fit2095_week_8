@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 module.exports = {
     getAll: function (req, res) {
-        Movie.find(function (err, movies) {
+        Movie.find({}).populate("actors").exec(function (err, movies) {
             if (err) return res.status(400).json(err);
             res.json(movies);
         });
@@ -31,6 +31,67 @@ module.exports = {
             if (err) return res.status(400).json(err);
             if (!movie) return res.status(404).json();
             res.json(movie);
+        });
+    },
+    deleteOne: function(req, res){
+        Movie.findOneAndDelete({_id: req.params.id}, function(err, movie){
+            if(err) return res.status(404).json(err);
+            res.json(movie);
+        });
+    },
+    removeActor: function(req, res){
+        Movie.findOne({_id: req.params.movieID}, function(err, movie){
+            if(err) return res.status(500).json(err);
+            if(!movie) return res.status(404).json({
+                message: "Movie not found"
+            });
+            Actor.findOne({_id: req.params.actorID}, function(err, actor){
+                if(err) return res.status(500).json(err);
+                if(!actor) return res.status(404).json({
+                    message: "Actor not found"
+                });
+                console.log(movie.actors);
+                for(let i = 0; i < movie.actors.length; i++){
+                    if(movie.actors[i]._id.equals(actor._id)){
+                        movie.actors.splice(i, 1);
+                        break;
+                    }
+                }
+                console.log(movie.actors);
+
+                movie.save(function(err){
+                    if(err) return res.status(500).json(err);
+                    res.json(movie);
+                });
+            })
+        })
+    },
+    addActor: function(req, res){
+        Movie.findOne({_id: req.params.id}, function(err, movie){
+            if(err) return res.status(500).json(err);
+            if(!movie) return res.status(404).json({
+                message: "Movie not found"
+            });
+
+            Actor.findOne({_id: req.body.id}, function(err, actor){
+                if(err) return res.status(500).json(err);
+                if(!actor) return res.status(404).json({
+                    message: "Actor not found"
+                });
+
+                movie.actors.push(actor._id);
+                movie.save(function(err){
+                    if(err) return res.status(500).json(err);
+                    res.json(movie);
+                });
+            })
+        })
+    },
+    getYearMovie: function(req, res){
+        Movie.where("year").gte(parseInt(req.params.year1)
+        ).lte(parseInt(req.params.year2)).exec(function(err, movies){
+            if(err) return res.status(500).json(err);
+            res.json(movies);
         });
     }
 };
